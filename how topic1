@@ -1,0 +1,60 @@
+[33mcommit 9f109680c09ea563b8c0b256c9c455975d5cbe09[m
+Author: Jon Nettleton <jon@solid-run.com>
+Date:   Tue Mar 21 11:08:46 2017 +0100
+
+    imx6: spl: add alternative boot sector for RAW image access
+    
+    Upstream has adopted a different offset than our image originally
+    used.  In order to migrate more easily to upstream uboot in the
+    future we will support both.  This should allow us to make the
+    change but still support legacy images.
+    
+    We check the new sector offset first because it is farther into the
+    disk and avoids the situation where an old image with a valid
+    magic number sits at the old offset but is incomplete because a new
+    image has been written over it starting at the new offset.
+
+[1mdiff --git a/common/spl/spl_mmc.c b/common/spl/spl_mmc.c[m
+[1mindex f102de8..8183fc6 100644[m
+[1m--- a/common/spl/spl_mmc.c[m
+[1m+++ b/common/spl/spl_mmc.c[m
+[36m@@ -252,6 +252,10 @@[m [mvoid spl_mmc_load_image(void)[m
+ 		if (spl_start_uboot() || mmc_load_image_raw_os(mmc))[m
+ #endif[m
+ 		err = mmc_load_image_raw(mmc, CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR);[m
+[32m+[m[32m#ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR_ALT[m
+[32m+[m		[32mif (err)[m
+[32m+[m			[32merr = mmc_load_image_raw(mmc, CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR_ALT);[m
+[32m+[m[32m#endif[m
+ 		if (err) {[m
+ 			printf("spl: wrong MMC boot mode\n");[m
+ 			hang();[m
+[1mdiff --git a/common/spl/spl_sata.c b/common/spl/spl_sata.c[m
+[1mindex 5f910ca..acf335b 100644[m
+[1m--- a/common/spl/spl_sata.c[m
+[1m+++ b/common/spl/spl_sata.c[m
+[36m@@ -196,6 +196,10 @@[m [mvoid spl_sata_load_image(void)[m
+ 	if (err) {[m
+ 		printf("Load image from RAW...\n");[m
+ 		err = sata_load_image_raw(CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR);[m
+[32m+[m[32m#ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR_ALT[m
+[32m+[m		[32mif (err)[m
+[32m+[m			[32merr = sata_load_image_raw(CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR_ALT);[m
+[32m+[m[32m#endif[m
+ 		if (err) {[m
+ 			printf("spl: wrong SATA boot mode\n");[m
+ 			hang();[m
+[1mdiff --git a/include/configs/imx6_spl.h b/include/configs/imx6_spl.h[m
+[1mindex eb4054d..878bc77 100644[m
+[1m--- a/include/configs/imx6_spl.h[m
+[1m+++ b/include/configs/imx6_spl.h[m
+[36m@@ -41,7 +41,8 @@[m
+ #define CONFIG_SPL_SATA_SUPPORT[m
+ [m
+ #define CONFIG_SPL_MMC_SUPPORT[m
+[31m-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR	84 /* offset 69KB */[m
+[32m+[m[32m#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR 138 /* offset 69KB */[m
+[32m+[m[32m#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR_ALT 84 /* offset 42KB */[m
+ #define CONFIG_SYS_MMCSD_RAW_MODE_KERNEL_SECTOR	0 /* offset 69KB */[m
+ #define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTOR	0 /* offset 69KB */[m
+ #define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTORS	0 /* offset 69KB */[m
